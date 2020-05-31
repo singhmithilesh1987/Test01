@@ -38,9 +38,10 @@
                 <h3 class="card-title">Add detail</h3>
               </div>
               <span id="msg"></span>
+              <ul id="errorMsg"></ul>
               <!-- /.card-header -->
               <!-- form start -->
-              <form id="frmid" role="form">
+              <form id="formDetailId" role="form">
               <!-- CSRF Token -->
               {{ csrf_field() }}
                 <div class="card-body">
@@ -51,41 +52,28 @@
                   </div>
                   <div class="form-group col-md-6">
                     <label for="exampleInputEmail1">Email </label>
-                    <input type="text" class="form-control" id="email" name="email" placeholder="Enter email" value="{{ old('email') }}">
+                    <input type="text" class="form-control" id="email" name="email" placeholder="Enter email" value="{{ old('email') }}" onblur="checkEmail(this.value)">
                     {!! $errors->first('email', '<span class="text-danger"><i class="fa fa-times"></i> :message</span>') !!}
+                    <span id="emailid"></span>
                   </div>
                   <div class="form-group col-md-6">
                     <label for="exampleInputEmail1">Phone </label>
                     <input type="text" class="form-control" id="phone" name="phone" placeholder="Enter phone" value="{{ old('phone') }}">
                     {!! $errors->first('phone', '<span class="text-danger"><i class="fa fa-times"></i> :message</span>') !!}
                   </div>
-
-                  <div id="subjectid">
+                  <div id="message2"></div>
+                  <div id="subjectId" class="subjectRow">
                   <label>Subject </label>
                   <div class="input-group col-md-6">
                     <input type="text" class="form-control subject" id="subject" name="subject[]" placeholder="Enter subject" value="{{ old('subject') }}">
                     <div class="input-group-append">
-                      <button id="addmore" class="btn btn-success"> + </button>
+                      <span id="addBtn" class="btn btn-success"> + </span>
                     </div>
                     {!! $errors->first('subject', '<span class="text-danger"><i class="fa fa-times"></i> :message</span>') !!}
                   </div>
                   </div>
 
-                   <div id="subjectid">
-                  <label>Subject </label>
-                  <div class="input-group col-md-6">
-                    <input type="text" class="form-control subject" id="subject" name="subject[]" placeholder="Enter subject" value="{{ old('subject') }}">
-
-                  </div>
-                  </div>
-
-                   <div id="subjectid">
-                  <label>Subject </label>
-                  <div class="input-group col-md-6">
-                    <input type="text" class="form-control subject" id="subject" name="subject[]" placeholder="Enter subject" value="{{ old('subject') }}">
-              
-                  </div>
-                  </div>
+                 
 
                 </div>
                 <!-- /.card-body -->
@@ -96,78 +84,108 @@
               </form>
             </div>
             <!-- /.card -->
-
-
-
-<script type = "text/javascript" src = "https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+            
+<script type = "text/javascript" src = "{{ asset('js/jquery.min.js') }}"></script>
+<script type = "text/javascript" src = "{{ asset('js/jquery.validate.min.js') }}"></script>
 <script type="text/javascript">
-$(document).ready(function(){
-  $("#submitBtnId").on('click', function(e) {
-  e.preventDefault();
-  var subjects = $("input[name='subject[]']")
-              .map(function(){return $(this).val();}).get();
-  var data = {
-      name : $('#name').val(),
-      email : $('#email').val(),
-      phone : $('#phone').val(),
-      subject : subjects
-    }
-  if(data){
-    $.ajax({
-    url:"{{ route('user.store') }}",
-    type:"post",
-    dataType:"json",
-    headers:{
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-          },
-    data: data,
+function checkEmail(email){ // check email id already exist
+  $.ajax({
+    url: "{{route('user.checkemail')}}",
+    type: 'POST',
+    headers:{'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+    data:{email:email},
     success:function(response){
-      console.log();
-      if(response.isSuccess == true){
-        $("#msg").html("Record added successfully.");
-      }else{
-        $("#msg").html("Something went wrong!");
-      }
-    },
-    error:function(){
+    if(response.status=='success'){
+      $("#emailid").html("The email has already been taken.");
+      $("#emailid").css('color', 'red');
+    }else{
+      $("#emailid").html("");
+    }
     }
   });
+}
+$(document).ready(function(){
+$("#submitBtnId").on('click', function(e){ //// Ajax call to the server.
+  e.preventDefault();
+  $("#formDetailId").valid();
+  var name = $('#name').val();
+  var email = $('#email').val();
+  var phone = $('#phone').val();
+  var subjects = $("input[name='subject[]']").map(function(){
+    return $(this).val();
+  }).get();
+  if(name && email && phone && (subjects.length > 0)){
+      $.ajax({
+        url:"{{ route('user.store') }}",
+        type:"post",
+        dataType:"json",
+        headers:{'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+        data:{
+          name : name,
+          email : email,
+          phone : phone,
+          subject : subjects
+        },
+        success:function(response){
+          if(response.status == "success"){
+            $("#errorMsg").html('');
+            $("#msg").html("Record added successfully.");
+            $("#errorMsg").css('color', 'green');
+          }else{
+            $("#msg").html("Something went wrong!");
+          }
+        },
+        error: function (response) {
+          var errors = response.responseJSON.errors;
+          $("#errorMsg").html('');
+          $.each(errors,function(key,val){
+            $("#errorMsg").append("<li>"+val+"</li>");
+            $("#errorMsg").css('color', 'red');
+          });
+        }
+    });
   }else{
     return false;
   }
 });
+//// Add more input box and delete.
+var i = 1;
+$("#addBtn").on("click", function(){
+    if($("#formDetailId .subjectRow").length < 5){
+      $("#formDetailId #subjectId").append('<div class="subjectRow" id="row'+i+'"><label>Subject </label><div class="input-group col-md-6"><input type="text" class="form-control subject" id="subject'+i+'" name="subject[]" placeholder="Enter subject" value=""><div class="input-group-append"><span id="'+i+'" class="btn btn-danger deleteBtn"> - </span></div></div></div>');
+      i++;
+    }else{
+      $("#message2").html("You have crossed your limit!");
+    }
 });
-
-// - jQuery Validation Plugin
-$("#frmid").validate({
+$(document).on("click",".deleteBtn", function(){
+  var id = $(this).attr("id");
+    $("#row"+id+"").remove();
+    $("#message2").html('');
+});
+////########################
+$("#formDetailId").validate({
   rules: {
-    name: "required",
-    phone: {
-      required: true,
-      minlength: 10
-    },
+    name: 'required',
+    phone: 'required',
     email: {
       required: true,
-      email:true
-    },
-    subject: "required",
+      email: true
+    }
   },
   messages: {
-    name: "Please enter name",
-    phone: "Please enter phone",
+    name: 'This field is required',
+    phone: 'This field is required',
     email: {
-      required: "Please provide a email id",
-      email: "Please provide a valid email id",
-    },
-    subject: "Please enter name",
+      required : 'This field is required',
+      email : 'Email address should be valid'
+    }
+  },
+  submitHandler: function(form) {
+      form.submit();
   }
 });
-
-  // $("#addmore").on("click", function(){
-  //   $("#frmid #subjectid").append('<div><label>Subject </label><div class="input-group col-md-6"><input type="text" class="form-control" id="subject" name="subject" placeholder="Enter subject" value="{{ old("subject") }}"><div class="input-group-append"><button class="btn btn-danger"> + </button></div></div></div>');
-  // })
+});
 </script>
-
-
     </body>
 </html>

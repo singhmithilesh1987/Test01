@@ -22,8 +22,7 @@ class UsersController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
-    {
+    public function create(){
         return view('create');
     }
 
@@ -33,14 +32,15 @@ class UsersController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
-    {
+    public function store(Request $request){
         $response = array();
         $response['isSuccess'] = false;
+        $response['status'] = 'failure';
         $request->validate([
             'name'=> 'required|string|max:255',
             'email'=> 'required|string|email|unique:users|max:255',
             'phone'=> 'required|numeric|digits:10',
+            //'subject'=> 'required',
         ]);
         $user = new User;
         $user->name  = request('name');
@@ -55,6 +55,17 @@ class UsersController extends Controller
                     );
             }
         $response['isSuccess'] = true;
+        $response['status'] = 'success';
+        }
+        return $response;
+    }
+
+    public function checkEmail(Request $req){
+        $response = array();
+        $result = User::where('email', $req->email)->count();
+        if($result == true){
+            $response['isSuccess'] = true;
+            $response['status'] = 'success';
         }
         return $response;
     }

@@ -22,3 +22,7 @@ Route::post('/store', [
 	'uses'=> 'usersController@store',
 	'as'=> 'user.store'
 ]);
+Route::post('/checkemail', [
+	'uses'=> 'usersController@checkEmail',
+	'as'=> 'user.checkemail'
+]);
